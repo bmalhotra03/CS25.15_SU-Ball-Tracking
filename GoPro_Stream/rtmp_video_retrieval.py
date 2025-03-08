@@ -17,6 +17,10 @@ def stream_video(rtmp_url, window_name):
         print(f"Error: Unable to open the RTMP stream for {window_name}")
         return
 
+    # Explicitly set resolution (Full HD)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+
     print(f"Streaming from {window_name}... Press 'q' in any window to exit.")
     
     while True:
