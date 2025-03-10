@@ -310,10 +310,10 @@ if __name__ == "__main__":
 
     # Load logos (replace these paths with your actual image files)
     # If you don't have a logo, set it to None
-    tmobile_logo = cv2.imread("assets/tmobile.png")
-    seattle_logo = cv2.imread("assets/seattleu.png")
-    home_logo = cv2.imread("assets/home_team.png")
-    away_logo = cv2.imread("assets/away_team.png")
+    tmobile_logo = cv2.imread("assets/Tmobile_Logo.png")
+    seattle_logo = cv2.imread("assets/SeattleU_Logo.png")
+    home_logo = cv2.imread("assets/SeattleU_Logo.png")
+    away_logo = cv2.imread("assets/SeattleU_Logo.png")
 
     # Start a thread for each RTMP stream
     threads = []
@@ -328,8 +328,8 @@ if __name__ == "__main__":
                 seattle_logo,
                 home_logo,
                 away_logo,
-                "SEA",  # Home acronym
-                "POR"   # Away acronym
+                "SU",  # Home acronym
+                "SU"   # Away acronym
             )
         )
         thread.start()
