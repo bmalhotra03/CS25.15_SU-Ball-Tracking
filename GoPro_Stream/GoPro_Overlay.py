@@ -1,15 +1,16 @@
 import cv2
 import threading
 import numpy as np
+from PIL import Image, ImageDraw, ImageFont
 
 ###############################################################################
 # RTMP URLs
 ###############################################################################
 rtmp_urls = [
-    "rtmp://192.168.1.100/live/GoPro_SU1",
-    "rtmp://192.168.1.100/live/GoPro_SU2",
+   # "rtmp://192.168.1.100/live/GoPro_SU1",
+   # "rtmp://192.168.1.100/live/GoPro_SU2",
     "rtmp://192.168.1.100/live/GoPro_SU3",
-    "rtmp://192.168.1.100/live/GoPro_SU4"
+   # "rtmp://192.168.1.100/live/GoPro_SU4"
 ]
 
 ###############################################################################
@@ -18,7 +19,7 @@ rtmp_urls = [
 tmobile_logo = cv2.imread("assets/TMobile_Logo.png")
 seattle_logo = cv2.imread("assets/SeattleU_SponsorLogo.png")
 home_logo    = cv2.imread("assets/SeattleU_Logo.png")
-away_logo    = cv2.imread("assets/away_team.png")
+away_logo    = cv2.imread("assets/UW_Logo.png")
 
 ###############################################################################
 # Helper Functions for Alpha Blending & Drawing
