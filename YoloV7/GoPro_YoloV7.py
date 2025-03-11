@@ -35,10 +35,10 @@ print(f"YOLOv7 model loaded on {device}")
 
 # List of RTMP stream URLs
 rtmp_urls = [
-    "rtmp://192.168.1.100/live/GoPro_SU1",
-    "rtmp://192.168.1.100/live/GoPro_SU2",
+    #"rtmp://192.168.1.100/live/GoPro_SU1",
+    #"rtmp://192.168.1.100/live/GoPro_SU2",
     "rtmp://192.168.1.100/live/GoPro_SU3",
-    "rtmp://192.168.1.100/live/GoPro_SU4"
+    #"rtmp://192.168.1.100/live/GoPro_SU4"
 ]
 
 # (Optional) Create a lock if you experience threading issues with the model

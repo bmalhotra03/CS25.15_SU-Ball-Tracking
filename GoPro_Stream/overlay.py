@@ -22,39 +22,42 @@ home_logo    = cv2.imread("assets/SeattleU_Logo.png")
 away_logo    = cv2.imread("assets/UW_Logo.png")
 
 ###############################################################################
-# Load Custom Font (Change this to your desired font)
+# Load Custom Fonts
 ###############################################################################
-FONT_PATH = "assets/FuturaMaxi.otf"  # Example: Use any TTF font
-FONT_SIZE = 22  # Adjust for text size
+FONT_PATH = "assets/FuturaMaxi.otf"  # Example: Main scoreboard font
+ANGLE_FONT_PATH = "assets/FuturaMaxi.otf"  # Example: Smaller font for action angle
+FONT_SIZE = 16  # Scoreboard font size
+ANGLE_FONT_SIZE = 12  # Smaller font for the Action Angle row
 
-def load_font(size):
-    return ImageFont.truetype(FONT_PATH, size)
+def load_font(size, font_path):
+    return ImageFont.truetype(font_path, size)
 
 ###############################################################################
 # Helper Functions
 ###############################################################################
-def draw_pil_text(img, text, x, y, font, text_color=(0, 0, 0)):
+def draw_pil_text(img, text, x, y, w, h, font, text_color=(0, 0, 0)):
     """
-    Draw text using Pillow (PIL) to support custom fonts, then overlay on OpenCV frame.
+    Draw text **fully centered** in a box using PIL (fixes vertical alignment).
     """
     # Convert OpenCV image to PIL
     pil_img = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
     draw = ImageDraw.Draw(pil_img)
-    
-    # Draw text
-    draw.text((x, y), text, font=font, fill=text_color)
+
+    # Measure text size correctly
+    bbox = draw.textbbox((0, 0), text, font=font)
+    text_w = bbox[2] - bbox[0]  # Width of text
+    text_h = bbox[3] - bbox[1]  # Height of text
+
+    # **Fix Vertical Centering:** Adjust Y based on text height
+    centered_x = x + (w - text_w) // 2  # Center horizontally
+    centered_y = y + (h - text_h) // 2 + 2  # Center vertically with slight adjustment
+
+    # ✅ Draw centered text (No bold effect)
+    draw.text((centered_x, centered_y), text, font=font, fill=text_color)
 
     # Convert back to OpenCV
     return cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
 
-def draw_transparent_rect(frame, x, y, w, h, color, alpha=0.5):
-    """
-    Draw a semi-transparent rectangle on 'frame' at (x, y) of size (w, h).
-    'color' is BGR, 'alpha' in [0.0, 1.0].
-    """
-    overlay = frame.copy()
-    cv2.rectangle(overlay, (x, y), (x + w, y + h), color, thickness=-1)
-    cv2.addWeighted(overlay, alpha, frame, 1 - alpha, 0, frame)
 
 def draw_image(frame, image, x, y, width, height):
     """
@@ -67,18 +70,20 @@ def draw_image(frame, image, x, y, width, height):
 
 def draw_acronym_score_box(frame, acronym, score, x, y, w, h, font):
     """
-    Draws a white box with a vertical black line splitting acronym & score.
-    Uses PIL for custom font rendering.
+    Draws a **pure white** box with a black vertical line separating acronym & score.
+    Uses PIL for **perfectly centered text**.
     """
-    draw_transparent_rect(frame, x, y, w, h, (255, 255, 255), alpha=0.9)
-    
-    # Draw vertical black line in the middle
+    # ✅ Solid white background
+    cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 255, 255), thickness=-1)
+
+    # ✅ Black vertical separator line
     mid_x = x + w // 2
     cv2.line(frame, (mid_x, y), (mid_x, y + h), (0, 0, 0), 2)
 
-    # Draw text with PIL
-    frame = draw_pil_text(frame, acronym, x + 10, y + 5, font, text_color=(0, 0, 0))  # Left side
-    frame = draw_pil_text(frame, score, mid_x + 10, y + 5, font, text_color=(0, 0, 0))  # Right side
+    # ✅ Draw **centered** text
+    frame = draw_pil_text(frame, acronym, x, y, w // 2, h, font, text_color=(0, 0, 0))  # Left side
+    frame = draw_pil_text(frame, score, mid_x, y, w // 2, h, font, text_color=(0, 0, 0))  # Right side
+
     return frame
 
 ###############################################################################
@@ -87,11 +92,12 @@ def draw_acronym_score_box(frame, acronym, score, x, y, w, h, font):
 def draw_custom_overlay(frame, home_acronym="HOM", away_acronym="AWY",
                         home_score="0", away_score="0", action_angle="GoPro_SU1"):
     """
-    Draws scoreboard overlay in the top-left and "Action Angle" in the top-right.
-    Uses custom fonts for acronyms, scores, and action angle text.
+    Draws scoreboard overlay in the top-left and "CS 25.15 | Action Angle: GoProName" below it.
+    Uses custom fonts for acronyms, scores, and labels.
     """
-    font = load_font(FONT_SIZE)  # Load custom font
-    
+    font = load_font(FONT_SIZE, FONT_PATH)  # Load main scoreboard font
+    angle_font = load_font(ANGLE_FONT_SIZE, ANGLE_FONT_PATH)  # Load smaller font for Action Angle row
+
     # 1) T-Mobile & SeattleU logos
     scoreboard_x, scoreboard_y = 10, 10
     draw_image(frame, tmobile_logo, scoreboard_x, scoreboard_y, 80, 80)
@@ -109,21 +115,17 @@ def draw_custom_overlay(frame, home_acronym="HOM", away_acronym="AWY",
     draw_image(frame, away_logo, away_row_x, away_row_y, 40, 40)
     frame = draw_acronym_score_box(frame, away_acronym, away_score, away_row_x + 40, away_row_y, 80, 40, font)
 
-    # 4) Action Angle (Top-Right)
-    frame_h, frame_w = frame.shape[:2]
-    box_w, box_h = 100, 40
-    spacing = 5
-    total_w = (box_w * 2) + spacing
-    aa_x = frame_w - total_w - 10
-    aa_y = 10
+    # 4) ✅ New row directly below the scoreboard (No Space)
+    info_box_y = away_row_y + 40  # Directly below away row (40px tall)
+    info_box_w = 280  # Width same as the scoreboard
+    info_box_h = 30  # Height for compact text
 
-    draw_transparent_rect(frame, aa_x, aa_y, box_w, box_h, (0, 0, 255), alpha=0.7)
-    draw_transparent_rect(frame, aa_x + box_w + spacing, aa_y, box_w, box_h, (255, 255, 255), alpha=0.7)
+    # ✅ Solid white background with black text
+    cv2.rectangle(frame, (scoreboard_x, info_box_y), (scoreboard_x + info_box_w, info_box_y + info_box_h), (255, 255, 255), thickness=-1)
 
-    # Draw action angle text with custom font
-    frame = draw_pil_text(frame, "Action Angle", aa_x + 10, aa_y + 5, font, text_color=(0, 0, 0))
-    frame = draw_pil_text(frame, action_angle, aa_x + box_w + spacing + 10, aa_y + 5, font, text_color=(0, 0, 0))
-
+    # ✅ Draw the text **perfectly centered** inside the box
+    info_text = f"CS 25.15  |  ACTION ANGLE: {action_angle}"
+    frame = draw_pil_text(frame, info_text, scoreboard_x, info_box_y, info_box_w, info_box_h, angle_font, text_color=(0, 0, 0))
     return frame
 
 ###############################################################################
