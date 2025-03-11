@@ -43,41 +43,49 @@ if device == "cuda":
 print(f"YOLOv7 model loaded on {device}")
 
 # Define the class ID for a soccer ball (correct COCO dataset class)
-SPORTS_BALL_CLASS_ID = 32  # Previously incorrect as 67 | 62
-# Input size for ball detection as used in ball_tracking
-INPUT_SIZE = 320
+SPORTS_BALL_CLASS_ID = 32  # Correct class ID
+# Adjust confidence and NMS threshold for better accuracy
+CONF_THRESHOLD = 0.5  # Increased for better accuracy
+NMS_THRESHOLD = 0.3  # Lowered to prevent oversized bounding boxes
 
-# (Optional) Create a lock if you experience threading issues with the model
-model_lock = threading.Lock()
+def letterbox(img, new_shape=(640, 640), color=(114, 114, 114)):
+    """
+    Resizes image while maintaining aspect ratio using padding.
+    """
+    shape = img.shape[:2]  # current shape [height, width]
+    ratio = min(new_shape[0] / shape[0], new_shape[1] / shape[1])
+    new_unpad = (int(round(shape[1] * ratio)), int(round(shape[0] * ratio)))
+    dw, dh = new_shape[1] - new_unpad[0], new_shape[0] - new_unpad[1]  # padding
+    dw, dh = dw // 2, dh // 2  # divide padding evenly
+    img = cv2.resize(img, new_unpad, interpolation=cv2.INTER_LINEAR)
+    img = cv2.copyMakeBorder(img, dh, dh, dw, dw, cv2.BORDER_CONSTANT, value=color)  # add border
+    return img
 
 def run_ball_detector(frame):
     """
-    Process a frame using YOLOv7 to detect ONLY a soccer ball.
+    Process a frame using YOLOv7 to detect ONLY a soccer ball with better accuracy.
     """
     orig_frame = frame.copy()
-    # Resize frame to the input size used in ball_tracking
-    img = cv2.resize(frame, (INPUT_SIZE, INPUT_SIZE))
-    # Convert BGR to RGB and change data layout from HWC to CHW
-    img = img[:, :, ::-1].transpose(2, 0, 1)
-    img = img.astype('float32') / 255.0  # Normalize
+    # Resize frame while maintaining aspect ratio using custom letterbox function
+    img = letterbox(frame, new_shape=(640, 640))
+    img = img[:, :, ::-1].transpose(2, 0, 1)  # Convert BGR to RGB and change format
+    img = np.ascontiguousarray(img, dtype=np.float32) / 255.0  # Normalize
     img = torch.from_numpy(img).unsqueeze(0).to(device)
 
-    # Run inference with torch.autocast if available for speed
+    # Run inference with torch.autocast for better performance
     with torch.no_grad():
         with torch.autocast("cuda", enabled=torch.cuda.is_available()):
-            with model_lock:
-                pred = model(img, augment=False)[0]
-    # Apply non-max suppression limiting detections to the sports ball class
-    pred = non_max_suppression(pred, conf_thres=0.1, iou_thres=0.45, classes=[SPORTS_BALL_CLASS_ID], agnostic=False)
+            pred = model(img, augment=False)[0]
+    # Apply non-max suppression, limiting detections to the sports ball class
+    pred = non_max_suppression(pred, conf_thres=CONF_THRESHOLD, iou_thres=NMS_THRESHOLD, classes=[SPORTS_BALL_CLASS_ID], agnostic=False)
 
-    # Process detections and draw boxes on the original frame
+    # Process detections and draw tighter bounding boxes on the original frame
     for det in pred:
         if det is not None and len(det):
-            # Rescale coordinates to the original frame size
             det[:, :4] = scale_coords(img.shape[2:], det[:, :4], orig_frame.shape).round()
             for *xyxy, conf, cls in det:
                 label = f'Soccer Ball {conf:.2f}'
-                # Draw bounding box with a distinct color (green)
+                # Draw bounding box with improved accuracy
                 plot_one_box(xyxy, orig_frame, label=label, color=(0, 255, 0), line_thickness=2)
     return orig_frame
 
@@ -92,21 +100,17 @@ def stream_video(rtmp_url, window_name):
         print(f"Error: Unable to open the RTMP stream for {window_name}")
         return
 
-    # Set resolution to Full HD
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
 
-    print(f"Streaming from {window_name} with soccer ball detection... Press 'q' to exit.")
+    print(f"Streaming from {window_name} with refined soccer ball detection... Press 'q' to exit.")
     while True:
         ret, frame = cap.read()
         if not ret:
             print(f"Error: Unable to grab frame from {window_name}")
             break
 
-        # Process frame using the soccer ball–only detector
         processed_frame = run_ball_detector(frame)
-
-        # Display the processed frame
         cv2.imshow(window_name, processed_frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
