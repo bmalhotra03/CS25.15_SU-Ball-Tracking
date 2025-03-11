@@ -42,8 +42,8 @@ if device == "cuda":
 
 print(f"YOLOv7 model loaded on {device}")
 
-# Define the class ID for a sports ball (soccer ball)
-SPORTS_BALL_CLASS_ID = 67
+# Define the class ID for a soccer ball (correct COCO dataset class)
+SPORTS_BALL_CLASS_ID = 32  # Previously incorrect as 67 | 62
 # Input size for ball detection as used in ball_tracking
 INPUT_SIZE = 320
 
@@ -53,8 +53,6 @@ model_lock = threading.Lock()
 def run_ball_detector(frame):
     """
     Process a frame using YOLOv7 to detect ONLY a soccer ball.
-    Preprocesses the frame to the expected size (320x320), runs inference with
-    a class filter (SPORTS_BALL_CLASS_ID) and draws bounding boxes on the original frame.
     """
     orig_frame = frame.copy()
     # Resize frame to the input size used in ball_tracking
@@ -78,17 +76,14 @@ def run_ball_detector(frame):
             # Rescale coordinates to the original frame size
             det[:, :4] = scale_coords(img.shape[2:], det[:, :4], orig_frame.shape).round()
             for *xyxy, conf, cls in det:
-                label = f'soccer ball {conf:.2f}'
+                label = f'Soccer Ball {conf:.2f}'
                 # Draw bounding box with a distinct color (green)
                 plot_one_box(xyxy, orig_frame, label=label, color=(0, 255, 0), line_thickness=2)
     return orig_frame
 
 # List of RTMP stream URLs
 rtmp_urls = [
-    "rtmp://192.168.1.100/live/GoPro_SU1",
-    "rtmp://192.168.1.100/live/GoPro_SU2",
     "rtmp://192.168.1.100/live/GoPro_SU3",
-    "rtmp://192.168.1.100/live/GoPro_SU4"
 ]
 
 def stream_video(rtmp_url, window_name):
@@ -102,7 +97,6 @@ def stream_video(rtmp_url, window_name):
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
 
     print(f"Streaming from {window_name} with soccer ball detection... Press 'q' to exit.")
-
     while True:
         ret, frame = cap.read()
         if not ret:
@@ -129,5 +123,4 @@ for i, url in enumerate(rtmp_urls):
 
 for thread in threads:
     thread.join()
-
 cv2.destroyAllWindows()
