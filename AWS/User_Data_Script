@@ -1,0 +1,35 @@
+#!/bin/bash
+# Update system and install dependencies
+sudo apt update && sudo apt upgrade -y
+sudo apt install unzip build-essential libpcre3 libpcre3-dev libssl-dev zlib1g-dev -y
+
+# Download and extract Nginx and RTMP module
+wget http://nginx.org/download/nginx-1.27.4.tar.gz
+wget https://github.com/sergey-dryabzhinsky/nginx-rtmp-module/archive/dev.zip
+tar -zxvf nginx-1.27.4.tar.gz
+unzip dev.zip
+
+# Build and install Nginx with RTMP module
+cd nginx-1.27.4
+./configure --with-http_ssl_module --add-module=../nginx-rtmp-module-dev
+make
+sudo make install
+
+# Open Nginx configuration file and append RTMP configuration
+echo "rtmp {
+    server {
+        listen 1935;
+        chunk_size 4096;
+
+        application live {
+            live on;
+            record off;
+        }
+    }
+}" | sudo tee -a /usr/local/nginx/conf/nginx.conf
+
+# Reload Nginx after editing configuration
+sudo /usr/local/nginx/sbin/nginx -s reload
+
+# Start Nginx
+sudo /usr/local/nginx/sbin/nginx
