@@ -1,0 +1,63 @@
+#!/bin/bash
+# Update system and install dependencies
+sudo apt update && sudo apt upgrade -y
+sudo apt install unzip build-essential libpcre3 libpcre3-dev libssl-dev zlib1g-dev ffmpeg -y
+
+# Download and extract Nginx and RTMP module
+wget http://nginx.org/download/nginx-1.27.4.tar.gz
+wget https://github.com/sergey-dryabzhinsky/nginx-rtmp-module/archive/dev.zip
+tar -zxvf nginx-1.27.4.tar.gz
+unzip dev.zip
+
+# Build and install Nginx with RTMP module
+cd nginx-1.27.4
+./configure --with-http_ssl_module --add-module=../nginx-rtmp-module-dev
+make
+sudo make install
+
+# Configure Nginx with RTMP and HLS
+echo "worker_processes auto;
+events {
+    worker_connections 1024;
+}
+http {
+    sendfile on;
+    tcp_nopush on;
+    directio 512;
+    default_type application/octet-stream;
+
+    server {
+        listen 80;
+        location /hls {
+            types {
+                application/vnd.apple.mpegurl m3u8;
+                video/mp2t ts;
+            }
+            root /usr/local/nginx/html;
+            add_header Cache-Control no-cache;
+            add_header Access-Control-Allow-Origin *;
+        }
+    }
+}
+rtmp {
+    server {
+        listen 1935;
+        chunk_size 4096;
+
+        application live {
+            live on;
+            record off;
+            hls on;
+            hls_path /usr/local/nginx/html/hls;
+            hls_fragment 5s;
+            hls_playlist_length 30s;
+        }
+    }
+}" | sudo tee /usr/local/nginx/conf/nginx.conf
+
+# Create HLS directory and set permissions
+sudo mkdir -p /usr/local/nginx/html/hls
+sudo chmod -R 755 /usr/local/nginx/html/hls
+
+# Start Nginx
+sudo /usr/local/nginx/sbin/nginx
