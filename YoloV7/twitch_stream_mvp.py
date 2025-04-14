@@ -172,10 +172,10 @@ def run_ball_detector(frame):
 ###############################################################################
 # Define RTMP URLs for each camera.
 rtmp_urls = {
-    1: "rtmp://192.168.1.100/live/GoPro_SU3",
-    2: "rtmp://192.168.1.101/live/GoPro_SU3",
-    3: "rtmp://192.168.1.102/live/GoPro_SU3",
-    4: "rtmp://192.168.1.103/live/GoPro_SU3",
+    1: "rtmp://192.168.1.100/live/GoPro_SU1",
+    2: "rtmp://192.168.1.100/live/GoPro_SU2",
+    3: "rtmp://192.168.1.100/live/GoPro_SU3",
+    4: "rtmp://192.168.1.100/live/GoPro_SU4",
 }
 
 # Create a frame queue for each camera.
