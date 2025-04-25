@@ -66,7 +66,7 @@ if away_logo is not None:
 
 FONT_PATH = "assets/FuturaMaxi.otf"
 ANGLE_FONT_PATH = "assets/FuturaMaxi.otf"
-FONT_SIZE = 14
+FONT_SIZE = 12
 ANGLE_FONT_SIZE = 12
 
 def load_font(size, font_path):
@@ -173,9 +173,9 @@ def run_ball_detector(frame):
 # Define RTMP URLs for each camera.
 rtmp_urls = {
     1: "rtmp://192.168.1.100/live/GoPro_SU3",
-    2: "rtmp://192.168.1.100/live/GoPro_SU2",
-    3: "rtmp://192.168.1.100/live/GoPro_SU1",
-    4: "rtmp://192.168.1.100/live/GoPro_SU4",
+    #2: "rtmp://192.168.1.100/live/GoPro_SU2",
+    #3: "rtmp://192.168.1.100/live/GoPro_SU1",
+    #4: "rtmp://192.168.1.100/live/GoPro_SU4",
 }
 
 # Create a frame queue for each camera.
@@ -296,43 +296,93 @@ twitch_stream_key = os.getenv("TWITCH_STREAM_KEY")
 if not twitch_stream_key:
     raise ValueError("TWITCH_STREAM_KEY not found in environment variables.")
 
-twitch_url = f"rtmp://live.twitch.tv/app/{twitch_stream_key}"
+twitch_url = f"rtmps://live.twitch.tv/app/{twitch_stream_key}"
 
 # Hardcode full path to ffmpeg executable to avoid PATH lookup issues
 FFMPEG_EXE = r"C:\ffmpeg\ffmpeg-master-latest-win64-gpl\bin\ffmpeg.exe"
 
-# Build the FFmpeg command.
+# ffmpeg_cmd = [
+#     FFMPEG_EXE,
+#     "-y",                       # overwrite output
+#     # → VIDEO input from raw frames
+#     "-f",   "rawvideo",
+#     "-pix_fmt", "bgr24",
+#     "-s",   "1920x1080",
+#     "-r",   "60",
+#     "-i",   "-",               # read video from stdin
+
+#     # → AUDIO input: silent stereo track (Twitch requires audio)
+#     "-f",  "lavfi",
+#     "-i",  "anullsrc=channel_layout=stereo:sample_rate=44100",
+
+#     # → VIDEO encoding (NVIDIA NVENC, low-latency preset)
+#     "-c:v",     "h264_nvenc",  # or "hevc_nvenc"
+#     "-preset",  "llhp",        # low-latency / high-performance
+#     "-tune",    "ll",          # low-latency mode
+
+#     # → Keyframe interval: 1 s GOP
+#     "-g",         "60",
+#     "-keyint_min", "60",
+
+#     # → Bitrate control
+#     "-b:v",     "6000k",
+#     "-maxrate", "6000k",
+#     "-bufsize", "6000k",
+
+#     # → (Optional) reduce internal buffering
+#     "-fflags",        "nobuffer",
+#     "-flags",         "low_delay",
+#     "-flush_packets", "0",
+#     "-fflags",        "+genpts",
+
+#     # → AUDIO encoding
+#     "-c:a",   "aac",
+#     "-b:a",   "128k",
+
+#     # → RTMP output
+#     "-f",   "flv",
+#     twitch_url
+# ]
+
 ffmpeg_cmd = [
     FFMPEG_EXE,
-    "-y",                     # overwrite output
-    "-f",  "rawvideo",        # input is raw video
-    "-pix_fmt", "bgr24",      # OpenCV pixel format
-    "-s",  "1920x1080",       # resolution
-    "-r",  "60",              # frame rate
-    "-i",  "-",               # read from stdin
+    "-y",                                 # overwrite output
+    # video input from OpenCV
+    "-f",  "rawvideo",
+    "-pix_fmt", "bgr24",
+    "-s",  "1920x1080",
+    "-r",  "60",
+    "-i",  "-",                           # stdin
 
-    # GPU-accelerated encoder (requires NVIDIA card + drivers)
-    "-c:v",     "h264_nvenc", # or "hevc_nvenc" for HEVC
-    "-preset",  "llhp",       # low-latency, high-perf
-    "-tune",    "ll",         # low-latency mode
+    # silent audio input
+    "-f",  "lavfi",
+    "-i",  "anullsrc=channel_layout=stereo:sample_rate=44100",
 
-    # Fixed GOP → 1s keyframes
-    "-g",         "60",
+    # video encoder
+    "-c:v",  "libx264",
+    "-preset",  "ultrafast",
+    "-tune",    "zerolatency",
+    "-g",       "60",      # keyframe every 60 frames (1 s)
     "-keyint_min", "60",
-
-    # Bitrate control
     "-b:v",     "6000k",
     "-maxrate", "6000k",
     "-bufsize", "6000k",
 
-    # Minimize internal buffering
-    "-fflags",        "nobuffer",
-    "-flags",         "low_delay",
-    "-flush_packets", "0",
-    "-fflags",        "+genpts",
+    # enforce pixel format Twitch accepts
+    "-pix_fmt", "yuv420p",
 
-    "-f", "flv",             # output format
-    twitch_url               # Twitch RTMP URL
+    # audio encoder
+    "-c:a",  "aac",
+    "-b:a",  "128k",
+    "-ar",   "44100",
+    "-ac",   "2",
+
+    # generate timestamps in a sane way
+    "-fflags",     "+genpts",
+
+    # output to Twitch
+    "-f",  "flv",
+    twitch_url
 ]
 
 ffmpeg_process = subprocess.Popen(ffmpeg_cmd, stdin=subprocess.PIPE)
