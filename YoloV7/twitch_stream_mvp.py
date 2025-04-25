@@ -66,7 +66,7 @@ if away_logo is not None:
 
 FONT_PATH = "assets/FuturaMaxi.otf"
 ANGLE_FONT_PATH = "assets/FuturaMaxi.otf"
-FONT_SIZE = 16
+FONT_SIZE = 14
 ANGLE_FONT_SIZE = 12
 
 def load_font(size, font_path):
