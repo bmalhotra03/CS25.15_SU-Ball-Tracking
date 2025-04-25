@@ -374,8 +374,25 @@ if __name__ == "__main__":
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
-    cv2.destroyAllWindows()
-    ffmpeg_process.stdin.close()
-    ffmpeg_process.wait()
+    #cv2.destroyAllWindows()
+    #ffmpeg_process.stdin.close()
+    #ffmpeg_process.wait()
 
-    # Join threads (they're daemons, so Python will exit anyway)
+    # Cleanup: Close OpenCV window and properly end the Twitch stream
+    cv2.destroyAllWindows()
+
+    # Close FFmpeg's stdin to signal end of stream
+    try:
+        ffmpeg_process.stdin.close()
+    except Exception as e:
+        print(f"Error closing FFmpeg stdin: {e}")
+
+    # Allow FFmpeg to flush and send final data
+    try:
+        ffmpeg_process.wait(timeout=5)  # wait up to 5 seconds
+        print("FFmpeg exited successfully.")
+    except subprocess.TimeoutExpired:
+        print("FFmpeg did not exit in time. Killing it.")
+        ffmpeg_process.kill()
+
+    print("Streaming session ended cleanly.")
