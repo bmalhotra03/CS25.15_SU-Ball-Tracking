@@ -275,7 +275,7 @@ def frame_processor(cam_id):
                 current_active = cam_switching(active_cam, ball_coords)
                 # Extract stream label from RTMP URL.
                 stream_label = rtmp_urls[current_active].split('/')[-1]
-                overlay_text = f"Active Cam: {stream_label}"
+                overlay_text = f"{stream_label}"
                 final_frame = draw_custom_overlay(proc_frame, action_angle=overlay_text)
             else:
                 if process_counter % 10 == 0:
