@@ -304,7 +304,6 @@ FFMPEG_EXE = r"C:\ffmpeg\ffmpeg-master-latest-win64-gpl\bin\ffmpeg.exe"
 # Build the FFmpeg command.
 ffmpeg_cmd = [
     FFMPEG_EXE,
-    "ffmpeg",
     "-y",  # Overwrite output if needed
     "-f", "rawvideo",  # Input is raw video data
     "-vcodec", "rawvideo",
