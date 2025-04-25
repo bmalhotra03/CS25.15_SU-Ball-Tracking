@@ -304,18 +304,35 @@ FFMPEG_EXE = r"C:\ffmpeg\ffmpeg-master-latest-win64-gpl\bin\ffmpeg.exe"
 # Build the FFmpeg command.
 ffmpeg_cmd = [
     FFMPEG_EXE,
-    "-y",  # Overwrite output if needed
-    "-f", "rawvideo",  # Input is raw video data
-    "-vcodec", "rawvideo",
-    "-pix_fmt", "bgr24",  # OpenCV uses bgr24 format
-    "-s", "1920x1080",  # Resolution of the video frames
-    "-r", "60",  # Frame rate is now 60 fps
-    "-i", "-",  # Read input from STDIN
-    "-c:v", "libx264",  # Encode using H.264
-    "-pix_fmt", "yuv420p",
-    "-preset", "veryfast",
-    "-f", "flv",  # Output format for streaming
-    twitch_url
+    "-y",                     # overwrite output
+    "-f",  "rawvideo",        # input is raw video
+    "-pix_fmt", "bgr24",      # OpenCV pixel format
+    "-s",  "1920x1080",       # resolution
+    "-r",  "60",              # frame rate
+    "-i",  "-",               # read from stdin
+
+    # GPU-accelerated encoder (requires NVIDIA card + drivers)
+    "-c:v",     "h264_nvenc", # or "hevc_nvenc" for HEVC
+    "-preset",  "llhp",       # low-latency, high-perf
+    "-tune",    "ll",         # low-latency mode
+
+    # Fixed GOP → 1s keyframes
+    "-g",         "60",
+    "-keyint_min", "60",
+
+    # Bitrate control
+    "-b:v",     "6000k",
+    "-maxrate", "6000k",
+    "-bufsize", "6000k",
+
+    # Minimize internal buffering
+    "-fflags",        "nobuffer",
+    "-flags",         "low_delay",
+    "-flush_packets", "0",
+    "-fflags",        "+genpts",
+
+    "-f", "flv",             # output format
+    twitch_url               # Twitch RTMP URL
 ]
 
 ffmpeg_process = subprocess.Popen(ffmpeg_cmd, stdin=subprocess.PIPE)
