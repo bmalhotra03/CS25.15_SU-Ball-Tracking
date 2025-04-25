@@ -172,9 +172,9 @@ def run_ball_detector(frame):
 ###############################################################################
 # Define RTMP URLs for each camera.
 rtmp_urls = {
-    1: "rtmp://192.168.1.100/live/GoPro_SU1",
+    1: "rtmp://192.168.1.100/live/GoPro_SU3",
     2: "rtmp://192.168.1.100/live/GoPro_SU2",
-    3: "rtmp://192.168.1.100/live/GoPro_SU3",
+    3: "rtmp://192.168.1.100/live/GoPro_SU1",
     4: "rtmp://192.168.1.100/live/GoPro_SU4",
 }
 
@@ -298,8 +298,12 @@ if not twitch_stream_key:
 
 twitch_url = f"rtmp://live.twitch.tv/app/{twitch_stream_key}"
 
+# Hardcode full path to ffmpeg executable to avoid PATH lookup issues
+FFMPEG_EXE = r"C:\ffmpeg\ffmpeg-master-latest-win64-gpl\bin\ffmpeg.exe"
+
 # Build the FFmpeg command.
 ffmpeg_cmd = [
+    FFMPEG_EXE,
     "ffmpeg",
     "-y",  # Overwrite output if needed
     "-f", "rawvideo",  # Input is raw video data
